@@ -56,7 +56,13 @@ public class MethodTransformer
 
         // Add types required by MoveNext to the module.
         foreach (var awaiterType in _moveNextBuilder.GetAwaiterTypes())
-            _context.TargetModule.TopLevelTypes.Add(awaiterType);
+        {
+            // Add as nested type if required.
+            if (awaiterType.IsNestedAssembly)
+                declaringType.NestedTypes.Add(awaiterType);
+            else
+                _context.TargetModule.TopLevelTypes.Add(awaiterType);
+        }
 
         _context.TargetModule.TopLevelTypes.Add(_moveNextBuilder.FrameType);
         declaringType.NestedTypes.Add(_stateMachine.Definition);
@@ -84,6 +90,9 @@ public class MethodTransformer
             il.Clear();
 
             // Push all arguments.
+            if (!_method.IsStatic)
+                il.Add(CilOpCodes.Ldarg_0);
+
             foreach (var parameter in _method.Parameters)
                 il.Add(CilOpCodes.Ldarg, parameter);
 
@@ -106,7 +115,7 @@ public class MethodTransformer
 
         var astCfg = _method.CilMethodBody!
             .ConstructStaticFlowGraph()
-            .ToAst(new CilPurityClassifier());
+            .Lift(new CilPurityClassifier());
 
         _moveNextBuilder.RegisterLabels(astCfg.Nodes.Select(x => (int) x.Offset));
 
@@ -146,9 +155,12 @@ public class MethodTransformer
 
         var result = new MethodDefinition(
             $"<{_method.Name}>g__{_method.Name}Async|0_0",
-            MethodAttributes.Assembly | MethodAttributes.Static,
+            MethodAttributes.Assembly,
             MethodSignature.CreateStatic(taskType, _method.Signature.ParameterTypes)
         );
+
+        result.Signature!.HasThis = _method.Signature.HasThis;
+        result.IsStatic = _method.IsStatic;
 
         // Copy all parameters.
         foreach (var parameter in _method.ParameterDefinitions)

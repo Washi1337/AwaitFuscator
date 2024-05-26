@@ -43,6 +43,13 @@ public class AsyncStateMachineType
         var parameters = new Dictionary<Parameter, FieldDefinition>();
         ParameterFields = parameters;
 
+        if (method.Parameters.ThisParameter is { } thisParameter)
+        {
+            var field = new FieldDefinition("<>4__this", FieldAttributes.Public, thisParameter.ParameterType);
+            Definition.Fields.Add(field);
+            parameters[thisParameter] = field;
+        }
+
         foreach (var parameter in method.Parameters)
         {
             var field = new FieldDefinition(parameter.Name, FieldAttributes.Public, parameter.ParameterType);

@@ -163,6 +163,14 @@ public class AsyncCodeFactory
         il.Add(Call, methodBuilder.CreateMethod);
         il.Add(Stfld, stateMachineType.BuilderField);
 
+        if (method.Parameters.ThisParameter is { } thisParameter)
+        {
+            // stateMachine.this = this;
+            il.Add(Ldloca, stateMachineLocal);
+            il.Add(Ldarg_0);
+            il.Add(Stfld, stateMachineType.ParameterFields[thisParameter]);
+        }
+
         foreach (var parameter in method.Parameters)
         {
             // stateMachine.Parameter = parameter;

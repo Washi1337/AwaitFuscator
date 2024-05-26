@@ -54,7 +54,7 @@ internal static class Program
         if (!Directory.Exists(outputDirectory))
             Directory.CreateDirectory(outputDirectory);
 
-        // Esnure runtimeconfig.json file is copied over.
+        // Ensure runtimeconfig.json file is copied over.
         string runtimeConfigFile = Path.ChangeExtension(file, ".runtimeconfig.json");;
         string runtimeConfigTarget = Path.Combine(outputDirectory, Path.GetFileName(runtimeConfigFile));
         if (File.Exists(runtimeConfigFile) && !File.Exists(runtimeConfigTarget))
@@ -90,9 +90,9 @@ internal static class Program
         if (method.Parameters.Any(x => x.ParameterType is ByReferenceTypeSignature))
             return false;
 
-        // We currently only support static methods.
-        if (!method.IsStatic)
-            return false;
+        // // We currently only support static methods.
+        // if (!method.IsStatic)
+        //     return false;
 
         // We currently cannot transform exception handlers.
         if (body.ExceptionHandlers.Count > 0)

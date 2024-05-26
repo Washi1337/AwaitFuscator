@@ -391,6 +391,10 @@ public class MoveNextBuilder
         var serializer = new StatementSerializer(this, awaiter.Type);
         AstNodeWalker<CilInstruction>.Walk(serializer, statement);
 
+        // If we accessed private members, we need to make the awaiter nested such that it can access those members.
+        if (serializer.HasAccessedPrivateMembers)
+            awaiter.Type.Definition.IsNestedAssembly = true;
+
         // Append 'return this' to GetResult().
         getResultIl.Add(Ldarg_0);
         getResultIl.Add(Ldobj, awaiter.Type.Definition);
@@ -681,6 +685,8 @@ public class MoveNextBuilder
             _awaiterType = awaiterType;
         }
 
+        public bool HasAccessedPrivateMembers { get; set; }
+
         public override void EnterInstructionExpression(InstructionExpression<CilInstruction> expression)
         {
             // If the beginning of this expression is supposed to be a branch label, register it.
@@ -745,6 +751,23 @@ public class MoveNextBuilder
             {
                 throw new ArgumentException("Cannot move branch instructions into an awaiter type.");
             }
+            else
+            {
+                switch (expression.Instruction.Operand)
+                {
+                    case MethodDefinition method when !method.IsAccessibleFromType(_awaiterType.Definition):
+                        HasAccessedPrivateMembers = true;
+                        break;
+
+                    case FieldDefinition field when !field.IsAccessibleFromType(_awaiterType.Definition):
+                        HasAccessedPrivateMembers = true;
+                        break;
+
+                    case TypeDefinition type when !type.IsAccessibleFromType(_awaiterType.Definition):
+                        HasAccessedPrivateMembers = true;
+                        break;
+                }
+            }
 
             _awaiterType.GetResultMethod.CilMethodBody!.Instructions.Add(new CilInstruction(opCode, operand));
 
@@ -758,6 +781,7 @@ public class MoveNextBuilder
             var il = _awaiterType.GetResultMethod.CilMethodBody!.Instructions;
 
             il.Add(Ldarg_0);
+            il.Add(Ldfld, _builder._frameLocalField);
             il.Add(Ldfld, _builder.GetSyntheticField(expression.Variable));
         }
 
@@ -765,8 +789,13 @@ public class MoveNextBuilder
         {
             base.EnterAssignmentStatement(statement);
 
-            foreach (var variable in statement.Variables)
-                _awaiterType.GetResultMethod.CilMethodBody!.Instructions.Add(Ldarg_0);
+            var il = _awaiterType.GetResultMethod.CilMethodBody!.Instructions;
+
+            foreach (var _ in statement.Variables)
+            {
+                il.Add(Ldarg_0);
+                il.Add(Ldfld, _builder._frameLocalField);
+            }
         }
 
         public override void ExitAssignmentStatement(AssignmentStatement<CilInstruction> statement)

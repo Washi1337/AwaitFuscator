@@ -23,6 +23,11 @@ public class ExpressionTypeInference : IAstNodeVisitor<CilInstruction, object?, 
 
     public TypeSignature? InferType(Expression<CilInstruction> expression) => expression.Accept(this, null);
 
+    public TypeSignature? Visit(CompilationUnit<CilInstruction> unit, object? state)
+    {
+        throw new NotImplementedException();
+    }
+
     public TypeSignature? Visit(AssignmentStatement<CilInstruction> statement, object? state) => null;
 
     public TypeSignature? Visit(ExpressionStatement<CilInstruction> statement, object? state)
@@ -31,6 +36,21 @@ public class ExpressionTypeInference : IAstNodeVisitor<CilInstruction, object?, 
     }
 
     public TypeSignature? Visit(PhiStatement<CilInstruction> statement, object? state) => null;
+
+    public TypeSignature? Visit(BlockStatement<CilInstruction> statement, object? state)
+    {
+        throw new NotImplementedException();
+    }
+
+    public TypeSignature? Visit(ExceptionHandlerStatement<CilInstruction> statement, object? state)
+    {
+        throw new NotImplementedException();
+    }
+
+    public TypeSignature? Visit(HandlerClause<CilInstruction> clause, object? state)
+    {
+        throw new NotImplementedException();
+    }
 
     public TypeSignature? Visit(InstructionExpression<CilInstruction> expression, object? state)
     {
