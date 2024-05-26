@@ -391,10 +391,6 @@ public class MoveNextBuilder
         var serializer = new StatementSerializer(this, awaiter.Type);
         AstNodeWalker<CilInstruction>.Walk(serializer, statement);
 
-        // If we accessed private members, we need to make the awaiter nested such that it can access those members.
-        if (serializer.HasAccessedPrivateMembers)
-            awaiter.Type.Definition.IsNestedAssembly = true;
-
         // Append 'return this' to GetResult().
         getResultIl.Add(Ldarg_0);
         getResultIl.Add(Ldobj, awaiter.Type.Definition);
@@ -685,8 +681,6 @@ public class MoveNextBuilder
             _awaiterType = awaiterType;
         }
 
-        public bool HasAccessedPrivateMembers { get; set; }
-
         public override void EnterInstructionExpression(InstructionExpression<CilInstruction> expression)
         {
             // If the beginning of this expression is supposed to be a branch label, register it.
@@ -753,18 +747,13 @@ public class MoveNextBuilder
             }
             else
             {
+                // If we accessed private members, we need to make the awaiter nested such that it can access those members.
                 switch (expression.Instruction.Operand)
                 {
                     case MethodDefinition method when !method.IsAccessibleFromType(_awaiterType.Definition):
-                        HasAccessedPrivateMembers = true;
-                        break;
-
                     case FieldDefinition field when !field.IsAccessibleFromType(_awaiterType.Definition):
-                        HasAccessedPrivateMembers = true;
-                        break;
-
                     case TypeDefinition type when !type.IsAccessibleFromType(_awaiterType.Definition):
-                        HasAccessedPrivateMembers = true;
+                        _awaiterType.Definition.IsNestedAssembly = true;
                         break;
                 }
             }
