@@ -223,6 +223,8 @@ public class MoveNextBuilder
     /// <returns>The finalized MoveNext method.</returns>
     public MethodDefinition End()
     {
+        RemoveTemporaryAwaiters();
+
         var ex = new CilLocalVariable(_context.CodeFactory.ExceptionType.ToTypeSignature(false));
         _body.LocalVariables.Add(ex);
 
@@ -279,6 +281,12 @@ public class MoveNextBuilder
         _il.OptimizeMacros();
 
         return _moveNext;
+    }
+
+    public void RemoveTemporaryAwaiters()
+    {
+        foreach (var awaiter in _awaiters)
+            _method.Module!.TopLevelTypes.Remove(awaiter.Type.Definition);
     }
 
     /// <summary>
@@ -578,6 +586,9 @@ public class MoveNextBuilder
             _currentInputType,
             outputType
         );
+
+        // Add type to module temporarily for accessibility checks to be more accurate.
+        _method.Module!.TopLevelTypes.Add(awaiterType.Definition);
 
         var awaiterTypeSig = awaiterType.Definition.ToTypeSignature(true);
         var awaiterField = new FieldDefinition($"<>u__{id + 1}", FieldAttributes.Private, awaiterTypeSig);

@@ -111,23 +111,31 @@ public class MethodTransformer
 
     private MethodDefinition DoTransform()
     {
-        _moveNextBuilder.Begin();
-
-        var astCfg = _method.CilMethodBody!
-            .ConstructStaticFlowGraph()
-            .Lift(new CilPurityClassifier());
-
-        _moveNextBuilder.RegisterLabels(astCfg.Nodes.Select(x => (int) x.Offset));
-
-        foreach (var node in astCfg.Nodes)
+        try
         {
-            _moveNextBuilder.BeginBlock((int) node.Offset);
-            foreach (var statement in node.Contents.Instructions)
-                _moveNextBuilder.AppendStatement(statement);
-            _moveNextBuilder.EndBlock();
-        }
+            _moveNextBuilder.Begin();
 
-        return _moveNextBuilder.End();
+            var astCfg = _method.CilMethodBody!
+                .ConstructStaticFlowGraph()
+                .Lift(new CilPurityClassifier());
+
+            _moveNextBuilder.RegisterLabels(astCfg.Nodes.Select(x => (int) x.Offset));
+
+            foreach (var node in astCfg.Nodes)
+            {
+                _moveNextBuilder.BeginBlock((int) node.Offset);
+                foreach (var statement in node.Contents.Instructions)
+                    _moveNextBuilder.AppendStatement(statement);
+                _moveNextBuilder.EndBlock();
+            }
+
+            return _moveNextBuilder.End();
+        }
+        catch
+        {
+            _moveNextBuilder.RemoveTemporaryAwaiters();
+            throw;
+        }
     }
 
     private void AddExtensionMethodsToModule()
