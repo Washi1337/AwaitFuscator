@@ -3,6 +3,7 @@ using System.Reflection;
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Builder;
 using AsmResolver.DotNet.Signatures;
+using AsmResolver.PE.DotNet.Cil;
 using AwaitFuscator.Engine;
 
 namespace AwaitFuscator;
@@ -24,15 +25,25 @@ internal static class Program
         Console.WriteLine();
 
         var rootCommand = new RootCommand();
-        var path = new Argument<string>("path");
+        var path = new Argument<string>(
+            "path",
+            "The path of the managed executable to awaitfuscate."
+        );
+
+        var types = new Option<string[]>(
+            "--only-types",
+            description: "Only process the specified types",
+            parseArgument: result => result.Tokens.Count > 0 ? result.Tokens[0].Value.Split(',').ToArray() : []
+        );
 
         rootCommand.AddArgument(path);
-        rootCommand.SetHandler(OnObfuscate, path);
+        rootCommand.AddOption(types);
+        rootCommand.SetHandler(OnObfuscate, path, types);
 
         rootCommand.Invoke(args);
     }
 
-    private static void OnObfuscate(string path)
+    private static void OnObfuscate(string path, string[] types)
     {
         string file = Path.GetFullPath(path);
         string workingDirectory = Path.GetDirectoryName(file)!;
@@ -47,7 +58,7 @@ internal static class Program
 
         var context = new ObfuscatorContext(module, parameters);
 
-        ProcessModule(context, module);
+        ProcessModule(context, module, types);
 
         // Create output directory if it doesn't exist already.
         string outputDirectory = Path.Combine(workingDirectory, "Obfuscated");
@@ -66,9 +77,10 @@ internal static class Program
         module.Write(outputFile, new ManagedPEImageBuilder(new ConsoleErrorListener()));
     }
 
-    private static void ProcessModule(ObfuscatorContext context, ModuleDefinition module)
+    private static void ProcessModule(ObfuscatorContext context, ModuleDefinition module, string[] includedTypes)
     {
         var selection = module.GetAllTypes()
+            .Where(t => includedTypes.Length == 0 || includedTypes.Contains(t.FullName))
             .SelectMany(x => x.Methods)
             .Where(CanObfuscate)
             .ToArray();
@@ -92,6 +104,10 @@ internal static class Program
 
         // We currently cannot transform exception handlers.
         if (body.ExceptionHandlers.Count > 0)
+            return false;
+
+        // We currently do not support "dup" yet.
+        if (body.Instructions.Any(x => x.OpCode.Code == CilCode.Dup))
             return false;
 
         return true;
