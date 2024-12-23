@@ -2,9 +2,8 @@ using AsmResolver.DotNet;
 using AsmResolver.DotNet.Code.Cil;
 using AsmResolver.DotNet.Collections;
 using AsmResolver.DotNet.Signatures;
-using AsmResolver.DotNet.Signatures.Types;
 using AsmResolver.PE.DotNet.Cil;
-using AsmResolver.PE.DotNet.Metadata.Tables.Rows;
+using AsmResolver.PE.DotNet.Metadata.Tables;
 using Echo.Ast;
 using Echo.Code;
 using static AsmResolver.PE.DotNet.Cil.CilOpCodes;
@@ -115,7 +114,9 @@ public class MoveNextBuilder
         _frameLocalField = new FieldDefinition(
             $"<x>5__1",
             FieldAttributes.Public,
-            factory.Object
+            context.Parameters.UseAnonymousTypes
+                ? factory.Object
+                : FrameType.ToTypeSignature()
         );
 
         // We need an extra field to store the result of a condition of a branch.
@@ -753,6 +754,7 @@ public class MoveNextBuilder
                     case MethodDefinition method when !method.IsAccessibleFromType(_awaiterType.Definition):
                     case FieldDefinition field when !field.IsAccessibleFromType(_awaiterType.Definition):
                     case TypeDefinition type when !type.IsAccessibleFromType(_awaiterType.Definition):
+                    case MemberReference reference when !reference.Resolve()?.IsAccessibleFromType(_awaiterType.Definition) ?? false:
                         _awaiterType.Definition.IsNestedAssembly = true;
                         break;
                 }
@@ -783,7 +785,7 @@ public class MoveNextBuilder
             foreach (var _ in statement.Variables)
             {
                 il.Add(Ldarg_0);
-                il.Add(Ldfld, _builder._frameLocalField);
+                il.Add(Ldfld, _awaiterType.FrameField);
             }
         }
 

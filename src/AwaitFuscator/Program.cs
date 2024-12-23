@@ -2,7 +2,7 @@
 using System.Reflection;
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Builder;
-using AsmResolver.DotNet.Signatures.Types;
+using AsmResolver.DotNet.Signatures;
 using AwaitFuscator.Engine;
 
 namespace AwaitFuscator;
@@ -101,7 +101,14 @@ internal static class Program
     {
         Console.WriteLine($"Processing {method}");
 
-        var transformer = new MethodTransformer(context, method);
-        transformer.ApplyTransformation();
+        try
+        {
+            var transformer = new MethodTransformer(context, method);
+            transformer.ApplyTransformation();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("[!]: " + ex.Message);
+        }
     }
 }

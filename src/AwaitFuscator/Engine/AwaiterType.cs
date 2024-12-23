@@ -1,8 +1,7 @@
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Code.Cil;
 using AsmResolver.DotNet.Signatures;
-using AsmResolver.DotNet.Signatures.Types;
-using AsmResolver.PE.DotNet.Metadata.Tables.Rows;
+using AsmResolver.PE.DotNet.Metadata.Tables;
 using static AsmResolver.PE.DotNet.Cil.CilOpCodes;
 
 namespace AwaitFuscator.Engine;
@@ -24,8 +23,8 @@ public class AwaiterType
     /// This populates everything in the awaiter type, except for the implementation of the <c>GetResult</c> method.
     /// </remarks>
     public AwaiterType(
-        ObfuscatorContext context, 
-        string name, 
+        ObfuscatorContext context,
+        string name,
         TypeSignature frameType,
         TypeSignature inputType,
         TypeSignature? outputType)

@@ -1,8 +1,7 @@
 using System.Runtime.CompilerServices;
 using AsmResolver.DotNet;
 using AsmResolver.DotNet.Signatures;
-using AsmResolver.DotNet.Signatures.Types;
-using AsmResolver.PE.DotNet.Metadata.Tables.Rows;
+using AsmResolver.PE.DotNet.Metadata.Tables;
 
 namespace AwaitFuscator.Engine;
 
